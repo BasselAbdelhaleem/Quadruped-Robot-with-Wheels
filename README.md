@@ -250,14 +250,16 @@ QuadWheel/
 │   ├── wheel/                  # Mecanum wheel, bracket, motor hub
 │   ├── encoder/                # Encoder disk, motor hub designs
 │   └── gearbox/                # Modified 1:15 planetary gearbox
-├── arduino/
-│   ├── stepper_control/        # Joint position & speed control
-│   ├── encoder_reader/         # Quadrature interrupt decoding
-│   └── motor_driver_interface/ # Step/dir/enable signal generation
-├── engineering_drawings/       # Full dimensioned drawings for all parts
-├── media/                      # Photos, videos, demo footage
+├── code/
+│   ├── 2LegControl/            # Full leg control of 2 of the 4 legs
+│   ├── CL_Leg_Control/         # Full closed loop leg control
+│   └── DC/                     # DC motor control for the wheels
+│   └── inverse_kinematics/     # Testing high level control for the leg inverse kinematics
+│   └── master_writer/          # Communication between master board and slave boards
 ├── docs/
 │   └── thesis.pdf              # Full design & fabrication documentation
+├── engineering_drawings/       # Full dimensioned drawings for all parts
+├── media/                      # Photos, videos, demo footage
 └── README.md
 ```
 
