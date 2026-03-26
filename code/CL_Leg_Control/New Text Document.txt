@@ -1,0 +1,111 @@
+#include <TMCStepper.h>
+#include <AccelStepper.h>
+#include <Arduino.h>
+#include <RotaryEncoder.h>
+
+// Stepper1 parameters
+//#define STEP1_EN_PIN           2 // Enable
+#define STEP1_DIR_PIN          4 // Direction
+#define STEP1_STEP_PIN         3 // Step
+#define STEP1_SW_SCK           5 // Software Slave Clock (SCK)
+#define STEP1_SW_TX            6 // SoftwareSerial transmit pin
+#define STEP1_SW_RX            7 // SoftwareSerial receive pin
+#define STEP1_SERIAL_PORT Serial1 // HardwareSerial port
+
+// Stepper2 parameters
+//#define STEP2_EN_PIN           2 // Enable
+#define STEP2_DIR_PIN          8 // Direction
+#define STEP2_STEP_PIN         9 // Step
+#define STEP2_SW_SCK           10 // Software Slave Clock (SCK)
+#define STEP2_SW_TX            11 // SoftwareSerial transmit pin
+#define STEP2_SW_RX            12 // SoftwareSerial receive pin
+#define STEP2_SERIAL_PORT Serial2 // HardwareSerial port
+
+#define R_SENSE 0.11f // Internal Sense Resistor controls the max RMS current
+#define stepsPerRevolution 200 // Motor steps per rev (1.8deg) // 80
+#define minPos -1*stepsPerRevolution
+#define maxPos stepsPerRevolution
+int posIn = 0;
+int speedIn = 0;
+                     
+TMC2208Stepper driver1 = TMC2208Stepper(STEP1_SW_RX, STEP1_SW_TX, R_SENSE); // Contsruct driver1
+AccelStepper stepper1(AccelStepper::DRIVER, STEP1_STEP_PIN, STEP1_DIR_PIN); // Construct motor1
+
+TMC2208Stepper driver2 = TMC2208Stepper(STEP2_SW_RX, STEP2_SW_TX, R_SENSE); // Contsruct driver2
+AccelStepper stepper2(AccelStepper::DRIVER, STEP2_STEP_PIN, STEP2_DIR_PIN); // Construct motor2
+
+// Encoder1
+#define Encoder1_PIN1 A0
+#define Encoder1_PIN2 A1
+
+RotaryEncoder *encoder1 = nullptr;
+
+// Encoder2
+#define Encoder2_PIN1 A2
+#define Encoder2_PIN2 A3
+
+RotaryEncoder *encoder2 = nullptr;
+
+void checkPosition1()
+{
+  encoder1->tick(); // just call tick() to check the state.
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  while(!Serial);
+  Serial.println("Start...");
+
+  // Stepper1 settings
+  driver1.begin();             // Initiate pins and registeries
+  driver1.rms_current(1200);    // Set stepper current to 600mA. The command is the same as command driver.setCurrent(600, 0.11, 0.5);
+  //driver1.en_pwm_mode(1);      // Enable extremely quiet stepping
+  driver1.pwm_autoscale(true);
+  driver1.microsteps(0);
+  stepper1.setMaxSpeed(4000);
+  stepper1.setAcceleration(80000);
+  //stepper1.setEnablePin(STEP1_EN_PIN);
+  stepper1.setPinsInverted(false, false, true); // Invert Enable pin
+  stepper1.enableOutputs();
+
+  // Stepper2 settings
+  driver2.begin();             // Initiate pins and registeries
+  driver2.rms_current(1200);    // Set stepper current to 600mA. The command is the same as command driver.setCurrent(600, 0.11, 0.5);
+  //driver2.en_pwm_mode(1);      // Enable extremely quiet stepping
+  driver2.pwm_autoscale(true);
+  driver2.microsteps(0);
+  stepper2.setMaxSpeed(4000);
+  stepper2.setAcceleration(80000);
+  //stepper2.setEnablePin(STEP2_EN_PIN);
+  stepper2.setPinsInverted(false, false, true); // Invert Enable pin
+  stepper2.enableOutputs();
+
+  // Encoder1 settings
+  encoder1 = new RotaryEncoder(Encoder1_PIN1, Encoder1_PIN2, RotaryEncoder::LatchMode::TWO03);
+  attachInterrupt(digitalPinToInterrupt(Encoder1_PIN1), checkPosition1, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(Encoder1_PIN2), checkPosition1, CHANGE);
+}
+
+void loop()
+{  
+  posIn = map(analogRead(A5), 0, 1023, -500, 500);
+  
+  static int pos1 = 0;
+  encoder1->tick(); // just call tick() to check the state.
+  int newPos1 = ((encoder1->getPosition())*(5.58));
+  if (pos1 != newPos1)
+    pos1 = newPos1;
+  stepper1.setCurrentPosition(pos1);
+  
+  stepper1.moveTo(posIn);
+  if(!inRange(stepper1))
+    stepper1.run();
+
+  Serial.println(stepper1.distanceToGo());
+}
+
+bool inRange(AccelStepper stepper)
+{
+  return abs(stepper.distanceToGo())<=15;
+}
